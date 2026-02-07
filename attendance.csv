@@ -1,0 +1,123 @@
+import tkinter as tk
+from tkinter import ttk, messagebox
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+
+# -------------------------------------
+# Load or Create Attendance CSV
+# -------------------------------------
+def load_data():
+    try:
+        df = pd.read_csv("attendance.csv")
+    except:
+        df = pd.DataFrame({
+            "Name": np.array(["Arjun", "Diya", "Karan", "Meera", "Ravi"]),
+            "Roll": np.array([101, 102, 103, 104, 105]),
+            "Status": np.array(["Absent"] * 5)
+        })
+        df.to_csv("attendance.csv", index=False)
+    return df
+
+df = load_data()
+
+# -------------------------------------
+# Save Data
+# -------------------------------------
+def save_data():
+    df.to_csv("attendance.csv", index=False)
+
+# -------------------------------------
+# Mark Attendance
+# -------------------------------------
+def mark_attendance():
+    name = name_var.get()
+    status = status_var.get()
+
+    if name == "" or status == "":
+        messagebox.showwarning("Warning", "Please select student & status")
+        return
+
+    df.loc[df["Name"] == name, "Status"] = status
+    save_data()
+    show_table()
+    messagebox.showinfo("Success", f"Attendance updated for {name}")
+
+# -------------------------------------
+# Show Attendance Table
+# -------------------------------------
+def show_table():
+    for row in table.get_children():
+        table.delete(row)
+
+    for index, row in df.iterrows():
+        table.insert("", tk.END, values=list(row))
+
+# -------------------------------------
+# Show Attendance Chart
+# -------------------------------------
+def show_chart():
+    present = sum(df["Status"] == "Present")
+    absent = sum(df["Status"] == "Absent")
+
+    fig = plt.Figure(figsize=(4, 3))
+    ax = fig.add_subplot(111)
+
+    sns.barplot(x=["Present", "Absent"], y=[present, absent], ax=ax)
+    ax.set_title("Attendance Summary")
+
+    canvas = FigureCanvasTkAgg(fig, master=frame_chart)
+    canvas.draw()
+    canvas.get_tk_widget().pack()
+
+# -------------------------------------
+# GUI Window
+# -------------------------------------
+root = tk.Tk()
+root.title("Simple Attendance Tracker")
+root.geometry("700x500")
+
+# -------------------------------------
+# Input Frame
+# -------------------------------------
+frame_input = tk.Frame(root)
+frame_input.pack(pady=10)
+
+tk.Label(frame_input, text="Select Name:").grid(row=0, column=0)
+name_var = tk.StringVar()
+name_menu = ttk.Combobox(frame_input, textvariable=name_var, values=list(df["Name"]))
+name_menu.grid(row=0, column=1)
+
+tk.Label(frame_input, text="Status:").grid(row=1, column=0)
+status_var = tk.StringVar()
+status_menu = ttk.Combobox(frame_input, textvariable=status_var, values=["Present", "Absent"])
+status_menu.grid(row=1, column=1)
+
+tk.Button(frame_input, text="Mark Attendance", command=mark_attendance).grid(row=2, column=0, columnspan=2, pady=10)
+
+# -------------------------------------
+# Table Frame
+# -------------------------------------
+frame_table = tk.Frame(root)
+frame_table.pack()
+
+columns = ("Name", "Roll", "Status")
+table = ttk.Treeview(frame_table, columns=columns, show="headings")
+for col in columns:
+    table.heading(col, text=col)
+    table.column(col, width=150)
+
+table.pack()
+show_table()
+
+# -------------------------------------
+# Chart Frame
+# -------------------------------------
+frame_chart = tk.Frame(root)
+frame_chart.pack(pady=20)
+
+tk.Button(root, text="Show Attendance Chart", command=show_chart).pack()
+
+root.mainloop()
